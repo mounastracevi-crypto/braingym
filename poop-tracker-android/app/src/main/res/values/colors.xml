@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="poop_bg">#F8F1E9</color>
+    <color name="poop_surface">#FFFDF8</color>
+    <color name="poop_card_stroke">#E4D4C4</color>
+
+    <color name="poop_primary">#7A4A2A</color>
+    <color name="poop_primary_variant">#603A20</color>
+    <color name="poop_secondary">#9A6D4B</color>
+</resources>

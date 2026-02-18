@@ -3,6 +3,7 @@
 A simple Android app to track bowel movements, similar to a period tracker workflow:
 
 - Tap **"I pooped now"** whenever you poop
+- Add a **past poop** (date + time) if you forgot to log on time
 - Choose a **Bristol stool type** (1-7) for each entry
 - See when your **last poop** happened
 - Review your **history**
@@ -13,15 +14,16 @@ A simple Android app to track bowel movements, similar to a period tracker workf
 ## Features
 
 1. **One-tap poop logging** with Bristol stool type selection
-2. **Persistent history** using `SharedPreferences`
-3. **Last poop time** + latest stool type
-4. **Regularity summary** based on gaps between events
-5. **Constipation check**
+2. **Backfill support** to log earlier poop events by date/time
+3. **Persistent history** using `SharedPreferences`
+4. **Last poop time** + latest stool type
+5. **Regularity summary** based on gaps between events
+6. **Constipation check**
    - Possible constipation: no poop for 48+ hours
    - Likely constipation: no poop for 72+ hours
-6. **Daily chart** (last 7 days)
-7. **Weekly chart** (last 8 weeks)
-8. **Daily reminder notifications**
+7. **Daily chart** (last 7 days)
+8. **Weekly chart** (last 8 weeks)
+9. **Daily reminder notifications**
    - Configurable reminder time
    - Rescheduled automatically after reboot
 

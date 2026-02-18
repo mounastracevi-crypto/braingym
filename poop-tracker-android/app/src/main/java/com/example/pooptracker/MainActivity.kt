@@ -1,6 +1,7 @@
 package com.example.pooptracker
 
 import android.Manifest
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
@@ -82,7 +83,19 @@ class MainActivity : AppCompatActivity() {
         refreshUi()
 
         binding.logPoopButton.setOnClickListener {
-            showBristolTypePicker()
+            showBristolTypePicker { selectedType ->
+                logPoop(
+                    bristolType = selectedType,
+                    timestamp = System.currentTimeMillis(),
+                    isPastEntry = false,
+                )
+            }
+        }
+
+        binding.logPastPoopButton.setOnClickListener {
+            showBristolTypePicker { selectedType ->
+                showPastPoopDatePicker(selectedType)
+            }
         }
     }
 
@@ -164,7 +177,7 @@ class MainActivity : AppCompatActivity() {
         binding.reminderTimeValue.text = getString(R.string.reminder_time_value, formattedTime)
     }
 
-    private fun showBristolTypePicker() {
+    private fun showBristolTypePicker(onTypeSelected: (Int) -> Unit) {
         val options = resources.getStringArray(R.array.bristol_type_options)
         var selectedIndex = DEFAULT_BRISTOL_TYPE - 1
 
@@ -175,22 +188,89 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.log_action) { _, _ ->
-                logPoopNow(selectedIndex + 1)
+                onTypeSelected(selectedIndex + 1)
             }
             .show()
     }
 
-    private fun logPoopNow(bristolType: Int) {
+    private fun showPastPoopDatePicker(bristolType: Int) {
+        val now = Calendar.getInstance()
+        DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                showPastPoopTimePicker(
+                    year = year,
+                    month = month,
+                    dayOfMonth = dayOfMonth,
+                    bristolType = bristolType,
+                )
+            },
+            now.get(Calendar.YEAR),
+            now.get(Calendar.MONTH),
+            now.get(Calendar.DAY_OF_MONTH),
+        ).apply {
+            datePicker.maxDate = System.currentTimeMillis()
+            setTitle(getString(R.string.pick_past_date))
+            show()
+        }
+    }
+
+    private fun showPastPoopTimePicker(
+        year: Int,
+        month: Int,
+        dayOfMonth: Int,
+        bristolType: Int,
+    ) {
+        val now = Calendar.getInstance()
+        TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                val selectedTimestamp = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    set(Calendar.MINUTE, minute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+
+                if (selectedTimestamp > System.currentTimeMillis()) {
+                    Toast.makeText(this, R.string.toast_future_time_error, Toast.LENGTH_SHORT).show()
+                    return@TimePickerDialog
+                }
+
+                logPoop(
+                    bristolType = bristolType,
+                    timestamp = selectedTimestamp,
+                    isPastEntry = true,
+                )
+            },
+            now.get(Calendar.HOUR_OF_DAY),
+            now.get(Calendar.MINUTE),
+            DateFormat.is24HourFormat(this),
+        ).apply {
+            setTitle(getString(R.string.pick_past_time))
+            show()
+        }
+    }
+
+    private fun logPoop(
+        bristolType: Int,
+        timestamp: Long,
+        isPastEntry: Boolean,
+    ) {
         poopEvents.add(
             PoopEvent(
-                timestamp = System.currentTimeMillis(),
+                timestamp = timestamp,
                 bristolType = bristolType.coerceIn(1, 7),
             ),
         )
         poopEvents.sortByDescending { it.timestamp }
         saveEvents()
         refreshUi()
-        Toast.makeText(this, R.string.toast_logged, Toast.LENGTH_SHORT).show()
+        val toastResId = if (isPastEntry) R.string.toast_logged_past else R.string.toast_logged
+        Toast.makeText(this, toastResId, Toast.LENGTH_SHORT).show()
     }
 
     private fun refreshUi() {

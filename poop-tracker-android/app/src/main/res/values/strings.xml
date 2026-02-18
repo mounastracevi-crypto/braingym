@@ -2,9 +2,12 @@
 <resources>
     <string name="app_name">Poop Tracker</string>
     <string name="title">Poop Tracker</string>
-    <string name="subtitle">Log each poop and track your bowel regularity.</string>
+    <string name="subtitle">Log each poop and track your bowel rhythm with confidence.</string>
     <string name="log_now">I pooped now</string>
+    <string name="log_past">I forgot - add past poop</string>
     <string name="pick_stool_type">Pick Bristol stool type</string>
+    <string name="pick_past_date">When did it happen? Pick date</string>
+    <string name="pick_past_time">Pick time</string>
     <string name="cancel">Cancel</string>
     <string name="log_action">Log</string>
     <string name="last_poop_label">Last poop</string>
@@ -20,6 +23,8 @@
     <string name="history_label">Poop history</string>
     <string name="empty_history">No poop entries yet.</string>
     <string name="toast_logged">Poop logged</string>
+    <string name="toast_logged_past">Past poop logged</string>
+    <string name="toast_future_time_error">That time is in the future. Pick an earlier time.</string>
     <string name="toast_notifications_denied">Notification permission is required for reminders.</string>
     <string name="toast_reminder_enabled">Daily reminder enabled.</string>
     <string name="toast_reminder_disabled">Daily reminder disabled.</string>
