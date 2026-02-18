@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Poop Tracker</string>
+    <string name="title">Poop Tracker</string>
+    <string name="subtitle">Log each poop and track your bowel regularity.</string>
+    <string name="log_now">I pooped now</string>
+    <string name="last_poop_label">Last poop</string>
+    <string name="regularity_label">Regularity</string>
+    <string name="constipation_label">Constipation check</string>
+    <string name="history_label">Poop history</string>
+    <string name="empty_history">No poop entries yet.</string>
+    <string name="toast_logged">Poop logged</string>
+</resources>
