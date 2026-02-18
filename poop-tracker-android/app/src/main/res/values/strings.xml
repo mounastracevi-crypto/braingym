@@ -4,12 +4,30 @@
     <string name="title">Poop Tracker</string>
     <string name="subtitle">Log each poop and track your bowel regularity.</string>
     <string name="log_now">I pooped now</string>
+    <string name="pick_stool_type">Pick Bristol stool type</string>
+    <string name="cancel">Cancel</string>
+    <string name="log_action">Log</string>
     <string name="last_poop_label">Last poop</string>
+    <string name="last_stool_type_label">Last stool type</string>
     <string name="regularity_label">Regularity</string>
     <string name="constipation_label">Constipation check</string>
+    <string name="charts_label">Trends</string>
+    <string name="daily_chart_label">Daily frequency (last 7 days)</string>
+    <string name="weekly_chart_label">Weekly frequency (last 8 weeks)</string>
+    <string name="week_of_label">Week of %1$s</string>
+    <string name="count_format">%1$d</string>
+    <string name="bristol_type_short">Type %1$d</string>
     <string name="history_label">Poop history</string>
     <string name="empty_history">No poop entries yet.</string>
     <string name="toast_logged">Poop logged</string>
+    <string name="toast_notifications_denied">Notification permission is required for reminders.</string>
+    <string name="toast_reminder_enabled">Daily reminder enabled.</string>
+    <string name="toast_reminder_disabled">Daily reminder disabled.</string>
+    <string name="toast_reminder_time_updated">Reminder time updated.</string>
+    <string name="reminders_label">Reminders</string>
+    <string name="enable_daily_reminder">Enable daily reminder</string>
+    <string name="set_reminder_time">Set reminder time</string>
+    <string name="reminder_time_value">Daily at %1$s</string>
     <string name="not_enough_data">Not enough data yet. Log at least 2 poops.</string>
     <string name="no_data_yet">No data yet.</string>
     <string name="regular_pattern">Regular pattern.</string>
@@ -18,5 +36,25 @@
     <string name="constipation_likely">Likely constipated. Last poop was %1$s.</string>
     <string name="constipation_possible">Possible constipation. Last poop was %1$s.</string>
     <string name="no_warning_signs">No warning signs right now.</string>
-    <string name="history_row">%1$d. %2$s (%3$s)</string>
+    <string name="history_row">%1$d. %2$s - Bristol %3$d (%4$s)</string>
+    <string name="just_now">just now</string>
+    <string name="minutes_ago">%1$d min ago</string>
+    <string name="hours_ago">%1$d h ago</string>
+    <string name="hours_minutes_ago">%1$d h %2$d min ago</string>
+    <string name="days_ago">%1$d d ago</string>
+    <string name="days_hours_ago">%1$d d %2$d h ago</string>
+    <string name="notification_channel_name">Poop reminders</string>
+    <string name="notification_channel_description">Daily reminder to log your bowel movement.</string>
+    <string name="notification_title">Poop tracker reminder</string>
+    <string name="notification_text">Remember to log your poop today.</string>
+
+    <string-array name="bristol_type_options">
+        <item>Type 1 - Separate hard lumps</item>
+        <item>Type 2 - Sausage-shaped but lumpy</item>
+        <item>Type 3 - Sausage with cracks on surface</item>
+        <item>Type 4 - Smooth, soft sausage or snake</item>
+        <item>Type 5 - Soft blobs with clear-cut edges</item>
+        <item>Type 6 - Mushy pieces with ragged edges</item>
+        <item>Type 7 - Watery, no solid pieces</item>
+    </string-array>
 </resources>

@@ -3,19 +3,27 @@
 A simple Android app to track bowel movements, similar to a period tracker workflow:
 
 - Tap **"I pooped now"** whenever you poop
+- Choose a **Bristol stool type** (1-7) for each entry
 - See when your **last poop** happened
 - Review your **history**
 - Get a quick **regularity** and **constipation** status
+- Track **daily and weekly chart trends**
+- Set a **daily reminder notification**
 
 ## Features
 
-1. **One-tap poop logging**
+1. **One-tap poop logging** with Bristol stool type selection
 2. **Persistent history** using `SharedPreferences`
-3. **Last poop time** with relative elapsed time
+3. **Last poop time** + latest stool type
 4. **Regularity summary** based on gaps between events
 5. **Constipation check**
    - Possible constipation: no poop for 48+ hours
    - Likely constipation: no poop for 72+ hours
+6. **Daily chart** (last 7 days)
+7. **Weekly chart** (last 8 weeks)
+8. **Daily reminder notifications**
+   - Configurable reminder time
+   - Rescheduled automatically after reboot
 
 ## Project Structure
 
@@ -30,9 +38,20 @@ poop-tracker-android/
 
 ## Logic Notes
 
-- Events are stored as timestamps (`Long`) in a JSON array.
+- Events are stored in JSON as:
+
+```json
+{
+  "timestamp": 1739872800000,
+  "bristolType": 4
+}
+```
+
+- The app also supports backward compatibility with older saved entries that only stored timestamps.
 - Regularity is considered **"Regular pattern"** when all observed intervals are between **12 and 48 hours**.
 - If intervals fall outside that range, the status shows **"Irregular pattern"**.
+- Daily chart bars represent poop counts for the last 7 calendar days.
+- Weekly chart bars represent poop counts for the last 8 weeks (Monday-Sunday weeks).
 
 ## Run in Android Studio
 
@@ -49,10 +68,3 @@ cd poop-tracker-android
 ```
 
 > You need a valid Android SDK installation (`ANDROID_HOME` / `ANDROID_SDK_ROOT` or `local.properties` with `sdk.dir`).
-
-## Future Improvements
-
-- Optional poop notes (Bristol stool scale, pain level, food triggers)
-- Chart view over weekly/monthly trends
-- Notifications/reminders
-- Export/import history

@@ -1,13 +1,31 @@
 package com.example.pooptracker
 
+import android.Manifest
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.pooptracker.databinding.ActivityMainBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONArray
 import org.json.JSONException
+import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -15,63 +33,250 @@ import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
 
+    private data class PoopEvent(
+        val timestamp: Long,
+        val bristolType: Int,
+    )
+
+    private data class ChartBarItem(
+        val label: String,
+        val count: Int,
+    )
+
     private lateinit var binding: ActivityMainBinding
     private lateinit var historyAdapter: ArrayAdapter<String>
-    private val poopEvents = mutableListOf<Long>()
+    private val poopEvents = mutableListOf<PoopEvent>()
     private val dateFormat = SimpleDateFormat("EEE, MMM d, yyyy h:mm a", Locale.getDefault())
+    private val dayLabelFormatter = DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
+    private val weekLabelFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
+
+    private var isUpdatingReminderSwitch = false
+    private var pendingReminderEnableAfterPermission = false
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!pendingReminderEnableAfterPermission) {
+                return@registerForActivityResult
+            }
+            pendingReminderEnableAfterPermission = false
+            if (granted) {
+                setReminderEnabled(true)
+            } else {
+                setReminderSwitchState(false)
+                Toast.makeText(this, R.string.toast_notifications_denied, Toast.LENGTH_LONG).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        NotificationHelper.ensureReminderChannel(this)
+
         historyAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
         binding.historyList.adapter = historyAdapter
 
         loadEvents()
+        setupReminderControls()
         refreshUi()
 
         binding.logPoopButton.setOnClickListener {
-            logPoopNow()
+            showBristolTypePicker()
         }
     }
 
-    private fun logPoopNow() {
-        poopEvents.add(System.currentTimeMillis())
-        poopEvents.sortDescending()
+    private fun setupReminderControls() {
+        binding.reminderSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isUpdatingReminderSwitch) {
+                return@setOnCheckedChangeListener
+            }
+            onReminderToggleRequested(isChecked)
+        }
+        setReminderSwitchState(ReminderScheduler.isEnabled(this))
+        updateReminderTimeLabel()
+
+        binding.setReminderTimeButton.setOnClickListener {
+            showReminderTimePicker()
+        }
+    }
+
+    private fun onReminderToggleRequested(enabled: Boolean) {
+        if (enabled && shouldRequestNotificationPermission()) {
+            pendingReminderEnableAfterPermission = true
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        setReminderEnabled(enabled)
+    }
+
+    private fun shouldRequestNotificationPermission(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun setReminderEnabled(enabled: Boolean) {
+        ReminderScheduler.setEnabled(this, enabled)
+        if (enabled) {
+            ReminderScheduler.scheduleDaily(this)
+            Toast.makeText(this, R.string.toast_reminder_enabled, Toast.LENGTH_SHORT).show()
+        } else {
+            ReminderScheduler.cancelDaily(this)
+            Toast.makeText(this, R.string.toast_reminder_disabled, Toast.LENGTH_SHORT).show()
+        }
+        setReminderSwitchState(enabled)
+    }
+
+    private fun setReminderSwitchState(checked: Boolean) {
+        isUpdatingReminderSwitch = true
+        binding.reminderSwitch.isChecked = checked
+        isUpdatingReminderSwitch = false
+    }
+
+    private fun showReminderTimePicker() {
+        val (currentHour, currentMinute) = ReminderScheduler.getReminderTime(this)
+        TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                ReminderScheduler.saveReminderTime(this, hourOfDay, minute)
+                if (ReminderScheduler.isEnabled(this)) {
+                    ReminderScheduler.scheduleDaily(this)
+                }
+                updateReminderTimeLabel()
+                Toast.makeText(this, R.string.toast_reminder_time_updated, Toast.LENGTH_SHORT).show()
+            },
+            currentHour,
+            currentMinute,
+            DateFormat.is24HourFormat(this),
+        ).show()
+    }
+
+    private fun updateReminderTimeLabel() {
+        val (hour, minute) = ReminderScheduler.getReminderTime(this)
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+        }
+        val formattedTime = DateFormat.getTimeFormat(this).format(calendar.time)
+        binding.reminderTimeValue.text = getString(R.string.reminder_time_value, formattedTime)
+    }
+
+    private fun showBristolTypePicker() {
+        val options = resources.getStringArray(R.array.bristol_type_options)
+        var selectedIndex = DEFAULT_BRISTOL_TYPE - 1
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.pick_stool_type)
+            .setSingleChoiceItems(options, selectedIndex) { _, which ->
+                selectedIndex = which
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.log_action) { _, _ ->
+                logPoopNow(selectedIndex + 1)
+            }
+            .show()
+    }
+
+    private fun logPoopNow(bristolType: Int) {
+        poopEvents.add(
+            PoopEvent(
+                timestamp = System.currentTimeMillis(),
+                bristolType = bristolType.coerceIn(1, 7),
+            ),
+        )
+        poopEvents.sortByDescending { it.timestamp }
         saveEvents()
         refreshUi()
         Toast.makeText(this, R.string.toast_logged, Toast.LENGTH_SHORT).show()
     }
 
     private fun refreshUi() {
+        val now = System.currentTimeMillis()
+
         if (poopEvents.isEmpty()) {
             binding.lastPoopValue.text = getString(R.string.empty_history)
+            binding.lastStoolTypeValue.text = getString(R.string.no_data_yet)
             binding.regularityValue.text = getString(R.string.not_enough_data)
             binding.constipationValue.text = getString(R.string.no_data_yet)
             historyAdapter.clear()
             historyAdapter.add(getString(R.string.empty_history))
             historyAdapter.notifyDataSetChanged()
+            updateCharts(now)
             return
         }
 
-        val now = System.currentTimeMillis()
         val lastPoop = poopEvents.first()
-        binding.lastPoopValue.text = "${dateFormat.format(Date(lastPoop))} (${elapsedSince(lastPoop, now)})"
+        binding.lastPoopValue.text =
+            "${dateFormat.format(Date(lastPoop.timestamp))} (${elapsedSince(lastPoop.timestamp, now)})"
+        binding.lastStoolTypeValue.text = getString(R.string.bristol_type_short, lastPoop.bristolType)
         binding.regularityValue.text = buildRegularitySummary()
-        binding.constipationValue.text = buildConstipationSummary(lastPoop, now)
+        binding.constipationValue.text = buildConstipationSummary(lastPoop.timestamp, now)
 
-        val rows = poopEvents.mapIndexed { index, timestamp ->
+        val rows = poopEvents.mapIndexed { index, event ->
             getString(
                 R.string.history_row,
                 index + 1,
-                dateFormat.format(Date(timestamp)),
-                elapsedSince(timestamp, now),
+                dateFormat.format(Date(event.timestamp)),
+                event.bristolType,
+                elapsedSince(event.timestamp, now),
             )
         }
         historyAdapter.clear()
         historyAdapter.addAll(rows)
         historyAdapter.notifyDataSetChanged()
+
+        updateCharts(now)
+    }
+
+    private fun updateCharts(nowMillis: Long) {
+        val zoneId = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
+        val eventDates = poopEvents.map { Instant.ofEpochMilli(it.timestamp).atZone(zoneId).toLocalDate() }
+
+        val dailyItems = (6 downTo 0).map { dayOffset ->
+            val date = today.minusDays(dayOffset.toLong())
+            ChartBarItem(
+                label = date.format(dayLabelFormatter),
+                count = eventDates.count { it == date },
+            )
+        }
+        renderChart(binding.dailyChartContainer, dailyItems)
+
+        val thisWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weeklyItems = (7 downTo 0).map { weekOffset ->
+            val weekStart = thisWeekStart.minusWeeks(weekOffset.toLong())
+            val weekEnd = weekStart.plusDays(6)
+            val count = eventDates.count { eventDate ->
+                !eventDate.isBefore(weekStart) && !eventDate.isAfter(weekEnd)
+            }
+            ChartBarItem(
+                label = getString(R.string.week_of_label, weekStart.format(weekLabelFormatter)),
+                count = count,
+            )
+        }
+        renderChart(binding.weeklyChartContainer, weeklyItems)
+    }
+
+    private fun renderChart(container: LinearLayout, items: List<ChartBarItem>) {
+        container.removeAllViews()
+        val maxCount = items.maxOfOrNull { it.count } ?: 0
+        val progressMax = maxCount.coerceAtLeast(1)
+
+        items.forEach { item ->
+            val rowView = layoutInflater.inflate(R.layout.item_chart_row, container, false)
+            val labelView = rowView.findViewById<TextView>(R.id.chartRowLabel)
+            val progressView = rowView.findViewById<ProgressBar>(R.id.chartRowBar)
+            val countView = rowView.findViewById<TextView>(R.id.chartRowCount)
+
+            labelView.text = item.label
+            progressView.max = progressMax
+            progressView.progress = item.count
+            countView.text = getString(R.string.count_format, item.count)
+            container.addView(rowView)
+        }
     }
 
     private fun buildRegularitySummary(): String {
@@ -79,7 +284,7 @@ class MainActivity : AppCompatActivity() {
             return getString(R.string.not_enough_data)
         }
 
-        val sortedAscending = poopEvents.sorted()
+        val sortedAscending = poopEvents.map { it.timestamp }.sorted()
         val intervalsHours = sortedAscending.zipWithNext { first, second ->
             TimeUnit.MILLISECONDS.toMinutes(second - first).toDouble() / 60.0
         }
@@ -122,24 +327,24 @@ class MainActivity : AppCompatActivity() {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(deltaMillis)
 
         return when {
-            minutes < 1 -> "just now"
-            minutes < 60 -> "$minutes min ago"
+            minutes < 1 -> getString(R.string.just_now)
+            minutes < 60 -> getString(R.string.minutes_ago, minutes)
             minutes < 60 * 24 -> {
                 val hours = minutes / 60
                 val remainderMinutes = minutes % 60
                 if (remainderMinutes == 0L) {
-                    "$hours h ago"
+                    getString(R.string.hours_ago, hours)
                 } else {
-                    "$hours h $remainderMinutes min ago"
+                    getString(R.string.hours_minutes_ago, hours, remainderMinutes)
                 }
             }
             else -> {
                 val days = minutes / (60 * 24)
                 val remainderHours = (minutes % (60 * 24)) / 60
                 if (remainderHours == 0L) {
-                    "$days d ago"
+                    getString(R.string.days_ago, days)
                 } else {
-                    "$days d $remainderHours h ago"
+                    getString(R.string.days_hours_ago, days, remainderHours)
                 }
             }
         }
@@ -167,9 +372,32 @@ class MainActivity : AppCompatActivity() {
         try {
             val array = JSONArray(raw)
             for (index in 0 until array.length()) {
-                poopEvents.add(array.getLong(index))
+                when (val entry = array.get(index)) {
+                    is JSONObject -> {
+                        val timestamp = entry.optLong(JSON_KEY_TIMESTAMP, INVALID_TIMESTAMP)
+                        if (timestamp == INVALID_TIMESTAMP) {
+                            continue
+                        }
+                        val bristolType = entry.optInt(JSON_KEY_BRISTOL_TYPE, DEFAULT_BRISTOL_TYPE).coerceIn(1, 7)
+                        poopEvents.add(
+                            PoopEvent(
+                                timestamp = timestamp,
+                                bristolType = bristolType,
+                            ),
+                        )
+                    }
+                    is Number -> {
+                        // Backward compatibility for old saved format (timestamp only).
+                        poopEvents.add(
+                            PoopEvent(
+                                timestamp = entry.toLong(),
+                                bristolType = DEFAULT_BRISTOL_TYPE,
+                            ),
+                        )
+                    }
+                }
             }
-            poopEvents.sortDescending()
+            poopEvents.sortByDescending { it.timestamp }
         } catch (_: JSONException) {
             // Corrupt data should not crash the app. Reset persisted history.
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().remove(KEY_EVENTS).apply()
@@ -178,7 +406,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveEvents() {
         val array = JSONArray()
-        poopEvents.sortedDescending().forEach(array::put)
+        poopEvents.sortedByDescending { it.timestamp }.forEach { event ->
+            array.put(
+                JSONObject().apply {
+                    put(JSON_KEY_TIMESTAMP, event.timestamp)
+                    put(JSON_KEY_BRISTOL_TYPE, event.bristolType)
+                },
+            )
+        }
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .edit()
             .putString(KEY_EVENTS, array.toString())
@@ -188,6 +423,11 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "poop_tracker_prefs"
         private const val KEY_EVENTS = "events"
+        private const val JSON_KEY_TIMESTAMP = "timestamp"
+        private const val JSON_KEY_BRISTOL_TYPE = "bristolType"
+        private const val INVALID_TIMESTAMP = Long.MIN_VALUE
+        private const val DEFAULT_BRISTOL_TYPE = 4
+
         private const val HEALTHY_INTERVAL_MIN_HOURS = 12.0
         private const val HEALTHY_INTERVAL_MAX_HOURS = 48.0
         private const val POSSIBLE_CONSTIPATED_HOURS = 48.0
