@@ -40,6 +40,16 @@ poop-tracker-android/
 2. Let Gradle sync dependencies.
 3. Run on an emulator or Android device (API 26+).
 
+## Build from Terminal
+
+```bash
+cd poop-tracker-android
+./gradlew help
+./gradlew assembleDebug
+```
+
+> You need a valid Android SDK installation (`ANDROID_HOME` / `ANDROID_SDK_ROOT` or `local.properties` with `sdk.dir`).
+
 ## Future Improvements
 
 - Optional poop notes (Bristol stool scale, pain level, food triggers)
