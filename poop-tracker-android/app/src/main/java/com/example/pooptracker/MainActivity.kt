@@ -47,8 +47,8 @@ class MainActivity : AppCompatActivity() {
     private fun refreshUi() {
         if (poopEvents.isEmpty()) {
             binding.lastPoopValue.text = getString(R.string.empty_history)
-            binding.regularityValue.text = "Not enough data yet. Log at least 2 poops."
-            binding.constipationValue.text = "No data yet."
+            binding.regularityValue.text = getString(R.string.not_enough_data)
+            binding.constipationValue.text = getString(R.string.no_data_yet)
             historyAdapter.clear()
             historyAdapter.add(getString(R.string.empty_history))
             historyAdapter.notifyDataSetChanged()
@@ -62,7 +62,12 @@ class MainActivity : AppCompatActivity() {
         binding.constipationValue.text = buildConstipationSummary(lastPoop, now)
 
         val rows = poopEvents.mapIndexed { index, timestamp ->
-            "${index + 1}. ${dateFormat.format(Date(timestamp))} (${elapsedSince(timestamp, now)})"
+            getString(
+                R.string.history_row,
+                index + 1,
+                dateFormat.format(Date(timestamp)),
+                elapsedSince(timestamp, now),
+            )
         }
         historyAdapter.clear()
         historyAdapter.addAll(rows)
@@ -71,7 +76,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildRegularitySummary(): String {
         if (poopEvents.size < 2) {
-            return "Not enough data yet. Log at least 2 poops."
+            return getString(R.string.not_enough_data)
         }
 
         val sortedAscending = poopEvents.sorted()
@@ -80,25 +85,35 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (intervalsHours.isEmpty()) {
-            return "Not enough data yet. Log at least 2 poops."
+            return getString(R.string.not_enough_data)
         }
 
         val average = intervalsHours.average()
         val min = intervalsHours.minOrNull() ?: average
         val max = intervalsHours.maxOrNull() ?: average
         val allInHealthyRange = intervalsHours.all { it in HEALTHY_INTERVAL_MIN_HOURS..HEALTHY_INTERVAL_MAX_HOURS }
-        val stateLabel = if (allInHealthyRange) "Regular pattern." else "Irregular pattern."
+        val stateLabel = if (allInHealthyRange) {
+            getString(R.string.regular_pattern)
+        } else {
+            getString(R.string.irregular_pattern)
+        }
 
-        return "$stateLabel Avg gap ${formatHours(average)} (range ${formatHours(min)} to ${formatHours(max)})."
+        return getString(
+            R.string.regularity_summary,
+            stateLabel,
+            formatHours(average),
+            formatHours(min),
+            formatHours(max),
+        )
     }
 
     private fun buildConstipationSummary(lastPoop: Long, now: Long): String {
         val hoursSince = TimeUnit.MILLISECONDS.toMinutes(now - lastPoop).toDouble() / 60.0
         val elapsed = elapsedSince(lastPoop, now)
         return when {
-            hoursSince >= LIKELY_CONSTIPATED_HOURS -> "Likely constipated. Last poop was $elapsed."
-            hoursSince >= POSSIBLE_CONSTIPATED_HOURS -> "Possible constipation. Last poop was $elapsed."
-            else -> "No warning signs right now."
+            hoursSince >= LIKELY_CONSTIPATED_HOURS -> getString(R.string.constipation_likely, elapsed)
+            hoursSince >= POSSIBLE_CONSTIPATED_HOURS -> getString(R.string.constipation_possible, elapsed)
+            else -> getString(R.string.no_warning_signs)
         }
     }
 

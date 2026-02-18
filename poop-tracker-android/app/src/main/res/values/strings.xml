@@ -10,4 +10,13 @@
     <string name="history_label">Poop history</string>
     <string name="empty_history">No poop entries yet.</string>
     <string name="toast_logged">Poop logged</string>
+    <string name="not_enough_data">Not enough data yet. Log at least 2 poops.</string>
+    <string name="no_data_yet">No data yet.</string>
+    <string name="regular_pattern">Regular pattern.</string>
+    <string name="irregular_pattern">Irregular pattern.</string>
+    <string name="regularity_summary">%1$s Avg gap %2$s (range %3$s to %4$s).</string>
+    <string name="constipation_likely">Likely constipated. Last poop was %1$s.</string>
+    <string name="constipation_possible">Possible constipation. Last poop was %1$s.</string>
+    <string name="no_warning_signs">No warning signs right now.</string>
+    <string name="history_row">%1$d. %2$s (%3$s)</string>
 </resources>
