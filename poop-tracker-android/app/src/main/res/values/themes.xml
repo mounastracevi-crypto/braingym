@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PoopTracker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/poop_primary</item>
+        <item name="colorPrimaryVariant">@color/poop_primary_variant</item>
+        <item name="colorSecondary">@color/poop_secondary</item>
+        <item name="android:statusBarColor">@color/poop_primary_variant</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
+    </style>
+</resources>
